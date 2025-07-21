@@ -1,0 +1,33 @@
+# --- Environnements virtuels ---
+.venv/
+env/
+venv/
+
+# --- Clés et secrets ---
+.env
+.env.*
+
+# --- Fichiers temporaires / outputs ---
+outputs/
+*.log
+*.zip
+*.enc
+*.tmp
+
+# --- Python cache ---
+__pycache__/
+*.py[cod]
+*.class
+
+# --- Outils d’édition ---
+.vscode/
+.idea/
+*.swp
+
+# --- Systèmes ---
+.DS_Store
+Thumbs.db
+
+# --- PDF ou rapports générés ---
+*.pdf
+rapport_final.txt

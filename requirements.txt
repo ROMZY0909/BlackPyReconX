@@ -1,0 +1,14 @@
+# === Modules de post-exploitation
+pynput
+pyautogui
+opencv-python
+
+# === Communication & exfiltration
+requests>=2.31.0
+python-dotenv>=1.0.1
+cryptography>=42.0.0
+python-telegram-bot==20.7
+
+# === PDF (facultatif - décommente si utilisé)
+# weasyprint>=61.0
+# fpdf>=1.7.2
