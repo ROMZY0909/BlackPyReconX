@@ -1,7 +1,10 @@
+# === Serveur Web principal
+flask==2.3.3
+
 # === Modules de post-exploitation
-pynput
-pyautogui
-opencv-python
+pynput>=1.7.6
+pyautogui>=0.9.54
+opencv-python>=4.9.0.80
 
 # === Communication & exfiltration
 requests>=2.31.0
