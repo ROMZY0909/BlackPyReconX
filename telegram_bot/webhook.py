@@ -4,8 +4,8 @@ from flask import Blueprint, request, abort
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler
 
-# ✅ Import corrigé : utils.py est maintenant dans models/
-from models.utils import get_api_keys
+# ✅ Import corrigé : utils.py est maintenant dans modules/
+from modules.utils import get_api_keys
 
 # ✅ Import stable des handlers
 from telegram_bot.telegram_bot import (

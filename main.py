@@ -10,6 +10,8 @@ load_dotenv()
 # 📁 Ajout du chemin racine pour les imports locaux
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR))
+sys.path.append(str(BASE_DIR / "models"))
+
 
 # Importation des modules BlackPyReconX
 from modules import (
