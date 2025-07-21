@@ -64,7 +64,8 @@ def run_cli():
 
 def run_server():
     from flask import Flask
-    from telegram.webhook import telegram_webhook
+    from telegram.webhook import telegram_webhook  # ✅ Cible ton fichier local
+
 
     app = Flask(__name__)
     app.register_blueprint(telegram_webhook, url_prefix="/telegram")
