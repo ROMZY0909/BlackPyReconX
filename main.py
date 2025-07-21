@@ -7,7 +7,7 @@ from pathlib import Path
 # Chargement des variables d’environnement depuis .env
 load_dotenv()
 
-# 📁 Ajout du chemin racine pour les imports locaux (comme telegram.webhook)
+# 📁 Ajout du chemin racine pour les imports locaux
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR))
 
@@ -67,7 +67,7 @@ def run_cli():
 
 def run_server():
     from flask import Flask
-    from telegram import webhook  # ✅ Correction experte
+    from telegram_bot import webhook  # ✅ Correction experte ici
 
     app = Flask(__name__)
     app.register_blueprint(webhook.telegram_webhook, url_prefix="/telegram")
