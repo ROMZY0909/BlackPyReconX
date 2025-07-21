@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import sys
 from dotenv import load_dotenv
 
 # Chargement des variables d’environnement depuis .env
@@ -19,7 +20,7 @@ from modules import (
     reporting
 )
 
-def main():
+def run_cli():
     parser = argparse.ArgumentParser(
         description="🕷️ BlackPyReconX – Red Team Offensive Framework (Windows, Android, Unix)"
     )
@@ -35,7 +36,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Modules exécutables
     if args.osint:
         osint.run(args.target)
 
@@ -62,5 +62,23 @@ def main():
     if args.report:
         reporting.generate_report()
 
+def run_server():
+    from flask import Flask
+    from telegram.webhook import telegram_webhook
+
+    app = Flask(__name__)
+    app.register_blueprint(telegram_webhook, url_prefix="/telegram")
+
+    @app.route("/")
+    def index():
+        return "🕷️ BlackPyReconX Webhook API est en ligne."
+
+    port = int(os.getenv("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
 if __name__ == "__main__":
-    main()
+    # Si des arguments sont présents => mode CLI
+    if len(sys.argv) > 1:
+        run_cli()
+    else:
+        run_server()
