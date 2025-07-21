@@ -18,7 +18,7 @@ SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
-@telegram_webhook.route("/telegram/webhook", methods=["POST"])
+@telegram_webhook.route("/webhook", methods=["POST"])
 def handle_webhook():
     # ✅ Vérification du header secret (sécurité)
     header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
