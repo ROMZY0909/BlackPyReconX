@@ -1,12 +1,15 @@
-# main.py
-
 import argparse
 import os
 import sys
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Chargement des variables d’environnement depuis .env
 load_dotenv()
+
+# 📁 Ajout du chemin racine pour les imports locaux (comme telegram.webhook)
+BASE_DIR = Path(__file__).resolve().parent
+sys.path.append(str(BASE_DIR))
 
 # Importation des modules BlackPyReconX
 from modules import (
@@ -64,11 +67,10 @@ def run_cli():
 
 def run_server():
     from flask import Flask
-    from telegram.webhook import telegram_webhook  # ✅ Cible ton fichier local
-
+    from telegram import webhook  # ✅ Correction experte
 
     app = Flask(__name__)
-    app.register_blueprint(telegram_webhook, url_prefix="/telegram")
+    app.register_blueprint(webhook.telegram_webhook, url_prefix="/telegram")
 
     @app.route("/")
     def index():
@@ -78,7 +80,6 @@ def run_server():
     app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # Si des arguments sont présents => mode CLI
     if len(sys.argv) > 1:
         run_cli()
     else:
