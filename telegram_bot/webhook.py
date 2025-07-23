@@ -17,15 +17,15 @@ from telegram_bot.telegram_bot import (
     rapport
 )
 
-# ✅ Récupération clés API
+# ✅ Récupération des clés API
 api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
-# ✅ Création application persistante
+# ✅ Création de l'application Telegram
 application = ApplicationBuilder().token(TOKEN).build()
 
-# ✅ Ajout des handlers
+# ✅ Ajout des handlers une seule fois
 application.add_handler(CommandHandler("menu", menu))
 application.add_handler(CommandHandler("osint", osint))
 application.add_handler(CommandHandler("scan", scan))
@@ -48,7 +48,11 @@ async def handle_webhook():
 
         update = Update.de_json(request.get_json(force=True), application.bot)
 
-        # ✅ Traitement direct du message (critique)
+        # ✅ Initialisation obligatoire (corrige RuntimeError)
+        if not application.initialized:
+            await application.initialize()
+
+        # ✅ Traitement du message
         await application.process_update(update)
 
         print("✅ Webhook Telegram traité avec succès.")
