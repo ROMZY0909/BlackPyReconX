@@ -1,12 +1,15 @@
-# Dockerfile pour Render - BlackPyReconX
-FROM python:3.11.9-slim
+    # Dockerfile pour Render - BlackPyReconX
+    FROM python:3.11.9-slim
 
-WORKDIR /app
+    WORKDIR /app
 
-COPY . .
+    COPY . .
 
-RUN pip install --upgrade pip && pip install -r requirements.txt
+    RUN pip install --upgrade pip && pip install -r requirements.txt
 
-EXPOSE 10000
+    EXPOSE 10000
 
-CMD ["python", "main.py"]
+    RUN chmod +x start.sh
+    CMD ["./start.sh"]
+
+
