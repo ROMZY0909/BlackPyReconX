@@ -1,10 +1,10 @@
 ﻿# === Serveur Web principal
 flask==2.3.3
 
-# === Modules de post-exploitation (⚠️ nécessite paquets système dans Dockerfile)
-pynput>=1.7.6
-pyautogui>=0.9.54
-opencv-python>=4.9.0.80
+# === Modules de post-exploitation (à utiliser uniquement dans les AGENTS locaux, pas sur Render)
+# pynput>=1.7.6
+# pyautogui>=0.9.54
+# opencv-python>=4.9.0.80
 
 # === Communication & exfiltration
 requests>=2.31.0
