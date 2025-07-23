@@ -1,5 +1,6 @@
 ﻿# === Serveur Web principal
-flask==2.3.3
+flask[async]==2.3.3
+
 
 # === Modules de post-exploitation (à utiliser uniquement dans les AGENTS locaux, pas sur Render)
 # pynput>=1.7.6
