@@ -22,10 +22,10 @@ api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
-# ✅ Création application persistante (à l’extérieur)
+# ✅ Création application persistante
 application = ApplicationBuilder().token(TOKEN).build()
 
-# ✅ Ajout des handlers UNE SEULE FOIS
+# ✅ Ajout des handlers
 application.add_handler(CommandHandler("menu", menu))
 application.add_handler(CommandHandler("osint", osint))
 application.add_handler(CommandHandler("scan", scan))
@@ -37,7 +37,7 @@ application.add_handler(CommandHandler("exfiltrate", exfiltrate))
 application.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
 application.add_handler(CommandHandler("rapport", rapport))
 
-# ✅ Blueprint
+# ✅ Blueprint Flask
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
 @telegram_webhook.route("/webhook", methods=["POST"])
@@ -47,7 +47,9 @@ async def handle_webhook():
             return Response("Unauthorized", status=403)
 
         update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.update_queue.put(update)
+
+        # ✅ Traitement direct du message (critique)
+        await application.process_update(update)
 
         print("✅ Webhook Telegram traité avec succès.")
         return Response("OK", status=200)
