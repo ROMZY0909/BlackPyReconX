@@ -1,5 +1,8 @@
-#!/bin/bash
+﻿#!/bin/bash
+echo "🚀 Lancement de BlackPyReconX (mode Docker)..."
 
-echo "🚀 Lancement de BlackPyReconX..."
+# Activation de l'environnement virtuel si nécessaire (commenté si non utilisé)
+# source .venv/bin/activate
 
+# Lancement de l'application Flask
 python main.py
