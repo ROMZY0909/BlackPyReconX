@@ -147,8 +147,7 @@ async def telegram_webhook():
     update = Update.de_json(data, application.bot)
 
     # ✅ Initialisation obligatoire sinon RuntimeError sur Render
-    if not application.ready:
-        await application.initialize()
+    await application.initialize()
 
     await application.process_update(update)
     return "OK", 200
