@@ -4,7 +4,7 @@ import argparse
 import os
 import sys
 
-# ✅ Import modules disponibles
+# ✅ Import des modules Red Team
 from modules.osint import osint_main
 from modules.scanner import scan_main
 from modules.exfiltration import exfiltrate_all, exfiltrate_path
@@ -13,12 +13,19 @@ from modules.exploit_sys import (
     exploit_system
 )
 from modules.reporting import generate_report
+
+# ✅ Ajout import pour serveur web (Flask) et banner
 from modules.utils import banner
+from flask import Flask
+from modules.telegram_bot import app as telegram_app  # Flask app définie dans telegram_bot.py
 
 def run_cli():
     parser = argparse.ArgumentParser(description="🕷️ BlackPyReconX - Red Team CLI")
 
+    # 🎯 Cible
     parser.add_argument("--target", help="Cible IP ou domaine")
+
+    # 🧩 Modules Red Team
     parser.add_argument("--osint", action="store_true", help="Effectuer un OSINT")
     parser.add_argument("--scan", action="store_true", help="Scan réseau")
     parser.add_argument("--exploit_sys", action="store_true", help="Exploitation système")
@@ -29,8 +36,12 @@ def run_cli():
     parser.add_argument("--exfiltrate_path", help="Exfiltration d'un chemin spécifique")
     parser.add_argument("--report", action="store_true", help="Génération de rapport final")
 
+    # 🌐 Mode serveur web (Flask pour bot Telegram)
+    parser.add_argument("--webserver", action="store_true", help="Lancer le serveur Flask (Webhook Telegram)")
+
     args = parser.parse_args()
 
+    # 🎯 Traitement des options CLI
     if args.osint:
         if args.target:
             osint_main(args.target)
@@ -69,6 +80,11 @@ def run_cli():
 
     elif args.report:
         generate_report()
+
+    elif args.webserver:
+        # ✅ Lancement du serveur Flask pour Telegram
+        print("🚀 Lancement du serveur Flask - Bot Telegram actif")
+        telegram_app.run(host="0.0.0.0", port=10000)
 
     else:
         banner()

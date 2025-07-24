@@ -2,4 +2,4 @@
 echo "🚀 Lancement de BlackPyReconX (mode Docker)..."
 
 # Lancement de l'application Flask
-python main.py
+python main.py --webserver
