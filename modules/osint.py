@@ -51,6 +51,7 @@ def shodan_lookup(ip, key):
 def save_osint_result(ip, results):
     """Enregistre les résultats OSINT dans outputs/osint.txt"""
     try:
+        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(OUTPUT_PATH, "a", encoding="utf-8") as f:
             f.write(f"\n\n===== 🔍 OSINT : {ip} =====\n")
             f.write(f"🕒 Date : {datetime.now()}\n")
@@ -67,7 +68,7 @@ def osint_main(ip):
     """Lance les recherches OSINT sur l'IP"""
     if not is_valid_ip(ip):
         print(f"❌ IP invalide : {ip}")
-        return
+        return {"error": "IP invalide"}
 
     results = {}
     print(f"🔍 OSINT en cours pour {ip}...\n")
@@ -97,7 +98,12 @@ def osint_main(ip):
     save_osint_result(ip, results)
     return results
 
-# 🔁 Exemple d’utilisation CLI
+# ✅ Fonction accessible par import externe
+def run(ip):
+    """Exécutée par main.py ou d'autres modules"""
+    return osint_main(ip)
+
+# 🔁 Utilisation manuelle en CLI
 if __name__ == "__main__":
     target = input("Entrez l'IP cible : ").strip()
     osint_main(target)

