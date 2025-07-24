@@ -1,7 +1,6 @@
 # main.py
 
 import argparse
-import os
 import sys
 
 # ✅ Import des modules Red Team
@@ -15,12 +14,12 @@ from modules.exploit_sys import (
 from modules.reporting import generate_report
 from modules.utils import banner
 
-# ✅ Flask pour le webhook Telegram (structure correcte)
+# ✅ Flask pour webhook Telegram
 try:
-    from telegram_bot.telegram_bot import app as telegram_app  # Flask app définie dans telegram_bot/telegram__bot.py
+    from telegram_bot.telegram_bot import app as telegram_app  # Correct : dossier telegram_bot, fichier telegram_bot.py
 except ImportError as e:
     print(f"⚠️ Impossible d'importer le bot Telegram : {e}")
-    telegram_app = None  # Fallback de sécurité
+    telegram_app = None  # Sécurité si l'import échoue
 
 def run_cli():
     parser = argparse.ArgumentParser(description="🕷️ BlackPyReconX - Red Team CLI")
@@ -39,12 +38,12 @@ def run_cli():
     parser.add_argument("--exfiltrate_path", help="Exfiltration d'un chemin spécifique")
     parser.add_argument("--report", action="store_true", help="Génération de rapport final")
 
-    # 🌐 Mode serveur web (Webhook Telegram)
+    # 🌐 Mode serveur Flask (pour Webhook Telegram)
     parser.add_argument("--webserver", action="store_true", help="Lancer le serveur Flask (Webhook Telegram)")
 
     args = parser.parse_args()
 
-    # 🔍 Traitement des options CLI
+    # 🔁 Traitement des commandes
     if args.osint:
         if args.target:
             osint_main(args.target)
