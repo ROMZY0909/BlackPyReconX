@@ -23,8 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUTS = BASE_DIR / "outputs"
 SCREENSHOTS = OUTPUTS / "screenshots"
 
-# === 📲 Flask App (exigé par Render)
-app = Flask(__name__)  # Flask app à importer dans main.py
+# === 📲 Flask App (Render)
+app = Flask(__name__)  # À importer dans main.py
 
 # === 📲 Telegram Application
 application: Application = Application.builder().token(TOKEN).build()
@@ -145,5 +145,10 @@ application.add_handler(CommandHandler("rapport", rapport))
 async def telegram_webhook():
     data = request.get_json(force=True)
     update = Update.de_json(data, application.bot)
+
+    # ✅ Initialisation obligatoire sinon RuntimeError sur Render
+    if not application.ready:
+        await application.initialize()
+
     await application.process_update(update)
     return "OK", 200
