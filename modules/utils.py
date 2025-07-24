@@ -5,12 +5,13 @@ import socket
 import hashlib
 from datetime import datetime
 from ipaddress import ip_address
+from pathlib import Path
 from dotenv import load_dotenv
 
-# 🔄 Chargement des variables d'environnement depuis le fichier .env
+# ✅ Chargement des variables d'environnement
 load_dotenv()
 
-# 🔑 Centralisation des clés API et des secrets
+# 🔑 Centralisation des clés API et secrets
 def get_api_keys():
     return {
         # OSINT
@@ -35,11 +36,11 @@ def get_api_keys():
         # Chiffrement
         "FERNET_KEY": os.getenv("FERNET_KEY"),
 
-        # Reverse Shell / Exploitation
+        # Exploitation / Reverse shell
         "ATTACKER_IP": os.getenv("ATTACKER_IP"),
         "ATTACKER_PORT": int(os.getenv("ATTACKER_PORT", 4444)),
 
-        # Optionnel : pour génération de résumé de rapport
+        # Résumé automatique
         "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY")
     }
 
@@ -48,7 +49,7 @@ def ensure_dir(path: str):
     if not os.path.exists(path):
         os.makedirs(path)
 
-# 📄 Écrit du texte dans un fichier
+# 📝 Écrit du texte dans un fichier
 def write_to_file(filepath: str, content: str, mode="a"):
     with open(filepath, mode, encoding="utf-8") as f:
         f.write(content + "\n")
@@ -79,11 +80,24 @@ def resolve_domain(domain: str):
     except socket.gaierror:
         return None
 
-# 🔐 Génère le hash SHA-256 d’une chaîne
+# 🔐 SHA-256 d’une chaîne
 def hash_sha256(data: str) -> str:
     return hashlib.sha256(data.encode()).hexdigest()
 
-# 📁 Génère un nom de fichier avec préfixe et horodatage
+# 📁 Nom de fichier avec horodatage
 def generate_output_filename(prefix="output", extension=".txt"):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return f"{prefix}_{timestamp}{extension}"
+
+# 🎯 Bannière ASCII
+def banner():
+    print(r"""
+██████╗ ██╗      █████╗  ██████╗██╗  ██╗██████╗ ██████╗ ██████╗ ███╗   ██╗██╗  ██╗
+██╔══██╗██║     ██╔══██╗██╔════╝██║ ██╔╝██╔══██╗██╔══██╗██╔══██╗████╗  ██║██║ ██╔╝
+██████╔╝██║     ███████║██║     █████╔╝ ██████╔╝██████╔╝██████╔╝██╔██╗ ██║█████╔╝ 
+██╔═══╝ ██║     ██╔══██║██║     ██╔═██╗ ██╔═══╝ ██╔═══╝ ██╔═══╝ ██║╚██╗██║██╔═██╗ 
+██║     ███████╗██║  ██║╚██████╗██║  ██╗██║     ██║     ██║     ██║ ╚████║██║  ██╗
+╚═╝     ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝     ╚═╝     ╚═╝     ╚═╝  ╚═══╝╚═╝  ╚═╝
+
+🕷️  Framework Red Team - BlackPyReconX
+""")
