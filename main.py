@@ -17,7 +17,7 @@ from modules.utils import banner
 
 # ✅ Flask pour le webhook Telegram (structure correcte)
 try:
-    from telegram_bot.telegram__bot import app as telegram_app  # Flask app définie dans telegram_bot/telegram__bot.py
+    from telegram_bot.telegram_bot import app as telegram_app  # Flask app définie dans telegram_bot/telegram__bot.py
 except ImportError as e:
     print(f"⚠️ Impossible d'importer le bot Telegram : {e}")
     telegram_app = None  # Fallback de sécurité
