@@ -1,5 +1,4 @@
 import datetime
-import os
 from pathlib import Path
 
 # 📂 Répertoire des résultats
@@ -16,7 +15,7 @@ def lire_fichier(path: Path) -> str:
             return f.read()
     return "[Aucune donnée]"
 
-def generer_rapport():
+def generate_report():
     """Génère le rapport final BlackPyReconX"""
     now = datetime.datetime.now()
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -41,9 +40,11 @@ def generer_rapport():
                 rapport.write("-" * 60 + "\n")
             rapport.write("\n📌 Rapport généré automatiquement par BlackPyReconX.\n")
         print(f"✅ Rapport généré avec succès : {REPORT_PATH}")
+        return str(REPORT_PATH)
     except Exception as e:
         print(f"❌ Erreur lors de la génération du rapport : {e}")
+        return None
 
 # Lancement manuel
 if __name__ == "__main__":
-    generer_rapport()
+    generate_report()
