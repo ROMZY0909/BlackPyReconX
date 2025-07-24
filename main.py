@@ -13,11 +13,14 @@ from modules.exploit_sys import (
     exploit_system
 )
 from modules.reporting import generate_report
-
-# ✅ Ajout import pour serveur web (Flask) et banner
 from modules.utils import banner
-from flask import Flask
-from modules.telegram_bot import app as telegram_app  # Flask app définie dans telegram_bot.py
+
+# ✅ Flask pour le webhook Telegram (structure correcte)
+try:
+    from telegram_bot.telegram__bot import app as telegram_app  # Flask app définie dans telegram_bot/telegram__bot.py
+except ImportError as e:
+    print(f"⚠️ Impossible d'importer le bot Telegram : {e}")
+    telegram_app = None  # Fallback de sécurité
 
 def run_cli():
     parser = argparse.ArgumentParser(description="🕷️ BlackPyReconX - Red Team CLI")
@@ -36,12 +39,12 @@ def run_cli():
     parser.add_argument("--exfiltrate_path", help="Exfiltration d'un chemin spécifique")
     parser.add_argument("--report", action="store_true", help="Génération de rapport final")
 
-    # 🌐 Mode serveur web (Flask pour bot Telegram)
+    # 🌐 Mode serveur web (Webhook Telegram)
     parser.add_argument("--webserver", action="store_true", help="Lancer le serveur Flask (Webhook Telegram)")
 
     args = parser.parse_args()
 
-    # 🎯 Traitement des options CLI
+    # 🔍 Traitement des options CLI
     if args.osint:
         if args.target:
             osint_main(args.target)
@@ -82,9 +85,11 @@ def run_cli():
         generate_report()
 
     elif args.webserver:
-        # ✅ Lancement du serveur Flask pour Telegram
-        print("🚀 Lancement du serveur Flask - Bot Telegram actif")
-        telegram_app.run(host="0.0.0.0", port=10000)
+        if telegram_app:
+            print("🚀 Lancement du serveur Flask - Webhook Telegram actif")
+            telegram_app.run(host="0.0.0.0", port=10000)
+        else:
+            print("❌ Impossible de lancer le serveur Flask : bot Telegram non importé")
 
     else:
         banner()
