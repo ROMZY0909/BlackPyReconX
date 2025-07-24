@@ -40,19 +40,22 @@ application.add_handler(CommandHandler("rapport", rapport))
 # ✅ Blueprint Flask
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
+# ✅ Initialisation manuelle protégée
+app_initialized = False
+
 @telegram_webhook.route("/webhook", methods=["POST"])
 async def handle_webhook():
+    global app_initialized
     try:
         if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != SECRET_TOKEN:
             return Response("Unauthorized", status=403)
 
-        update = Update.de_json(request.get_json(force=True), application.bot)
-
-        # ✅ Initialisation obligatoire (corrige RuntimeError)
-        if not application.initialized:
+        # ✅ Initialisation (une seule fois)
+        if not app_initialized:
             await application.initialize()
+            app_initialized = True
 
-        # ✅ Traitement du message
+        update = Update.de_json(request.get_json(force=True), application.bot)
         await application.process_update(update)
 
         print("✅ Webhook Telegram traité avec succès.")
