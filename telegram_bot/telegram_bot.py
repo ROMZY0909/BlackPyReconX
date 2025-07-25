@@ -1,6 +1,7 @@
 # telegram_bot/telegram_bot.py
 
 import os
+import asyncio
 from pathlib import Path
 from flask import Flask, request
 from telegram import Update
@@ -9,7 +10,6 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 from telegram.helpers import escape_markdown
-
 from modules.utils import get_api_keys
 
 # === 🔐 Clés API
@@ -24,10 +24,10 @@ OUTPUTS = BASE_DIR / "outputs"
 SCREENSHOTS = OUTPUTS / "screenshots"
 BUILD_DIR = BASE_DIR / "build" / "dist"
 
-# === 📲 Flask App (Render)
-app = Flask(__name__)  # À importer dans main.py
+# === 📲 Flask App (Webhook)
+app = Flask(__name__)
 
-# === 📲 Telegram Application
+# === 🤖 Application Telegram
 application: Application = Application.builder().token(TOKEN).build()
 
 # === 🧩 Commandes Telegram
@@ -152,7 +152,7 @@ async def set_payload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Échec de la génération du payload.")
 
-# === 🚀 Handlers Telegram
+# === 🚀 Handlers
 application.add_handler(CommandHandler("menu", menu))
 application.add_handler(CommandHandler("osint", osint))
 application.add_handler(CommandHandler("scan", scan))
@@ -165,13 +165,24 @@ application.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
 application.add_handler(CommandHandler("rapport", rapport))
 application.add_handler(CommandHandler("set_payload", set_payload))
 
-# === 🔁 Webhook HTTP (Render)
+# === 🔁 Webhook Render avec gestion de boucle asyncio
 @app.post("/telegram/webhook")
-async def telegram_webhook():
-    data = request.get_json(force=True)
-    update = Update.de_json(data, application.bot)
+def telegram_webhook():
+    try:
+        data = request.get_json(force=True)
+        update = Update.de_json(data, application.bot)
 
-    # ✅ Initialisation obligatoire sinon RuntimeError sur Render
-    await application.initialize()
-    await application.process_update(update)
-    return "OK", 200
+        async def process():
+            await application.initialize()
+            await application.process_update(update)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(process())
+        loop.close()
+
+        return "OK", 200
+
+    except Exception as e:
+        print(f"❌ Erreur webhook : {e}")
+        return "Erreur serveur", 500
