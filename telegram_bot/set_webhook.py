@@ -26,10 +26,18 @@ bot = Bot(token=TOKEN)
 
 async def set_webhook():
     try:
+        # (Optionnel) Suppression du webhook existant avant reconfiguration
+        await bot.delete_webhook()
+        print("🔁 Webhook précédent supprimé.")
+
+        # Activation du nouveau webhook
         success = await bot.set_webhook(
             url=FULL_WEBHOOK_URL,
             secret_token=SECRET_TOKEN if SECRET_TOKEN else None
         )
+
+        await asyncio.sleep(1)  # Petit délai de stabilité (Render)
+
         if success:
             print(f"✅ Webhook Telegram activé : {FULL_WEBHOOK_URL}")
             if SECRET_TOKEN:
@@ -41,4 +49,5 @@ async def set_webhook():
         print(f"❌ Erreur lors de set_webhook() : {e}")
 
 if __name__ == "__main__":
+    print("🚀 Initialisation du webhook Telegram...")
     asyncio.run(set_webhook())
