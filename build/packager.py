@@ -9,7 +9,7 @@ import sys
 
 def build_executable(script_path, name="payload", onefile=True):
     cmd = [
-        "pyinstaller",
+        sys.executable, "-m", "PyInstaller",  # 🔒 Appel stable
         script_path,
         "--name", name,
         "--distpath", "build/dist",
@@ -21,7 +21,12 @@ def build_executable(script_path, name="payload", onefile=True):
         cmd.append("--onefile")
 
     print(f"[+] Construction de {name} depuis {script_path}")
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True)
+        print(f"✅ Payload généré : build/dist/{name}")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Échec génération avec PyInstaller : {e}")
+        sys.exit(1)
 
 def copy_script(source_path: Path, output_name: str):
     output_dir = Path("build/dist")
@@ -67,7 +72,8 @@ def main():
     elif ext == ".sh":
         copy_script(path, name)
     else:
-        print(f"❌ Extension de fichier non prise en charge : {ext}")
+        print(f"❌ Extension non prise en charge : {ext}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
