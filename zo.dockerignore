@@ -1,0 +1,15 @@
+# .dockerignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.zip
+*.exe
+outputs/
+venv/
+.venv/
+.env
+.idea/
+.DS_Store
+*.sqlite3
