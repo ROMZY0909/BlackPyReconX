@@ -35,11 +35,15 @@ def run_cli():
     parser = argparse.ArgumentParser(description="🕷️ BlackPyReconX - Red Team CLI")
     parser.add_argument("--target", help="Cible IP ou domaine")
 
+    # ➕ Ajout : paramètres reverse shell
+    parser.add_argument("--lhost", help="Adresse IP de l'attaquant (reverse shell)")
+    parser.add_argument("--lport", type=int, help="Port de connexion du reverse shell")
+
     # Modules Red Team
     parser.add_argument("--osint", action="store_true", help="Effectuer un OSINT")
     parser.add_argument("--scan", action="store_true", help="Scan réseau")
     parser.add_argument("--exploit_sys", action="store_true", help="Exploitation système")
-    parser.add_argument("--exploit_web", action="store_true", help="Exploitation web")  # ✅ Ajout ici
+    parser.add_argument("--exploit_web", action="store_true", help="Exploitation web")
     parser.add_argument("--keylogger", action="store_true", help="Lancer le keylogger")
     parser.add_argument("--screenshot", action="store_true", help="Capture d'écran")
     parser.add_argument("--webcam", action="store_true", help="Capture webcam")
@@ -54,6 +58,12 @@ def run_cli():
                         help="Génère un payload pour la plateforme choisie")
 
     args = parser.parse_args()
+
+    # 🌐 Surcharge dynamique LHOST/LPORT si fournis
+    if args.lhost:
+        os.environ["ATTACKER_IP"] = args.lhost
+    if args.lport:
+        os.environ["ATTACKER_PORT"] = str(args.lport)
 
     try:
         if args.osint:
