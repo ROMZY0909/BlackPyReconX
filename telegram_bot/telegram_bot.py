@@ -1,35 +1,36 @@
 # telegram_bot/telegram_bot.py
 
 import os
+import asyncio
 from pathlib import Path
+
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    ContextTypes,
-)
+from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.helpers import escape_markdown
-from modules.utils import get_api_keys
-import asyncio
 
-# 📦 Chargement des clés API
+# ✅ Chargement manuel du fichier .env
+from dotenv import load_dotenv
+load_dotenv()
+
+# 📦 Chargement sécurisé des clés API
+from modules.utils import get_api_keys
 api = get_api_keys()
 TOKEN = api.get("TELEGRAM_BOT_TOKEN")
 if not TOKEN:
     raise EnvironmentError("❌ TELEGRAM_BOT_TOKEN est manquant dans .env")
 
-# 📁 Répertoires
+# 📁 Répertoires du projet
 BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUTS = BASE_DIR / "outputs"
 SCREENSHOTS = OUTPUTS / "screenshots"
 BUILD_DIR = BASE_DIR / "build" / "dist"
 
-# 📲 Application Telegram globale
+# 📲 Application Telegram globale (utilisée dans webhook.py et main.py)
 telegram_app = Application.builder().token(TOKEN).build()
 
 # =============================
-# ✅ Commandes Telegram
+# ✅ Commandes Telegram Red Team
 # =============================
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -44,7 +45,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📤 `/exfiltrate`\n"
         "📂 `/exfiltrate_path <chemin>`\n"
         "🧾 `/rapport`\n"
-        "💣 `/set_payload <windows|android|unix>`\n",
+        "💣 `/set_payload <windows|android|unix>`",
         parse_mode=ParseMode.MARKDOWN
     )
 
@@ -119,8 +120,9 @@ async def set_payload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_file_or_error(update, path, "❌ Échec de la génération du payload.")
 
 # =============================
-# 📦 Utilitaire d’envoi sécurisé
+# 📦 Fonction utilitaire commune
 # =============================
+
 async def send_file_or_error(update, path: Path, error_msg: str):
     if path.exists():
         try:
@@ -135,6 +137,7 @@ async def send_file_or_error(update, path: Path, error_msg: str):
 # =============================
 # ✅ Enregistrement des handlers
 # =============================
+
 telegram_app.add_handler(CommandHandler("menu", menu))
 telegram_app.add_handler(CommandHandler("osint", osint))
 telegram_app.add_handler(CommandHandler("scan", scan))

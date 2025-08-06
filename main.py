@@ -4,6 +4,10 @@ import os
 import threading
 import subprocess
 
+from dotenv import load_dotenv
+load_dotenv()
+
+
 # ✅ Import des modules Red Team
 from modules.osint import osint_main
 from modules.scanner import scan_main
